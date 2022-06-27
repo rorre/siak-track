@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "siak-track"
+version = "0.1.0"
+description = ""
+authors = ["Rendy Arya Kemal <renrror@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+httpx = "^0.23.0"
+beautifulsoup4 = "^4.11.1"
+lxml = "^4.9.0"
+rich = "^12.4.4"
+notify-py = "^0.3.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+types-beautifulsoup4 = "^4.11.2"
+flake8 = "^4.0.1"
+mypy = "^0.961"
+black = {version = "^22.3.0", allow-prereleases = true}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,13 +1,17 @@
 import asyncio
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List
+
+import httpx
 from siak_track.session import SIAKSession
 from rich.console import Console
 from rich.table import Table
-from notifypy import Notify
-import sys
+from dotenv import load_dotenv
 
-SLEEP_DURATION = 30 * 60
+load_dotenv()
+
+SLEEP_DURATION = 60 * 60
 
 
 con = Console()
@@ -40,7 +44,7 @@ async def get_scores(sess: SIAKSession):
             semester += 1
             continue
 
-        if semester == 2:
+        if semester == 3:
             tds = row.select("td")
             subject = tds[3].text
             score = list(map(lambda x: x.text, tds[7:-1]))
@@ -68,11 +72,12 @@ def score_str(score: Dict[str, List[str]]):
 
 
 async def main():
-    sess = SIAKSession(sys.argv[1], sys.argv[2])
-    await sess.login()
+    sess = SIAKSession(os.getenv("SIAK_USERNAME"), os.getenv("SIAK_PASSWORD"))
 
     last_run = {}
     while True:
+        sess._client._cookies.clear()
+        await sess.login()
         con.clear()
         modified = []
         scores = await get_scores(sess)
@@ -83,15 +88,27 @@ async def main():
             score = score_str(score)
             table.add_row(subject, score)
 
-            if subject in last_run and last_run[subject] != score:
+            if last_run.get(subject) != score:
                 modified.append(subject)
             last_run[subject] = score
 
         if modified:
-            notification = Notify()
-            notification.title = "Score Modified"
-            notification.message = "\n".join(modified)
-            notification.send(block=False)
+            message = ""
+            for subject, score in scores.items():
+                score = score_str(score)
+                message += f"{subject}: {score}\n"
+
+            httpx.post(
+                os.getenv("WEBHOOK_URL"),
+                json={
+                    "embeds": [
+                        {
+                            "title": "SIAK Score Modified",
+                            "description": f"Score changed: {', '.join(modified)}\n```{message.strip()}```",
+                        }
+                    ]
+                },
+            )
 
         now = datetime.now()
         next_dt = now + timedelta(seconds=SLEEP_DURATION)
@@ -99,7 +116,7 @@ async def main():
         con.print(table)
         con.print("[bold blue]Fetch time:[/] " + now.isoformat(" ", timespec="seconds"))
         con.print("[bold red]Next:[/] " + next_dt.isoformat(" ", timespec="seconds"))
-        await asyncio.sleep(30 * 60)
+        await asyncio.sleep(SLEEP_DURATION)
 
 
 loop = asyncio.new_event_loop()

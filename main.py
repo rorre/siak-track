@@ -66,7 +66,7 @@ def score_str(score: Dict[str, List[str]]):
         if "." in component[1]:
             s.append(f'{component[1].split(".")[0]:>2}')
         else:
-            s.append("".join(map(lambda x: x[0], component[1].title().split(" "))))
+            s.append(component[1].title())
 
     return " | ".join(s)
 

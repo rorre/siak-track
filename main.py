@@ -2,6 +2,7 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List
+import msvcrt
 
 import httpx
 from siak_track.session import SIAKSession
@@ -116,7 +117,18 @@ async def main():
         con.print(table)
         con.print("[bold blue]Fetch time:[/] " + now.isoformat(" ", timespec="seconds"))
         con.print("[bold red]Next:[/] " + next_dt.isoformat(" ", timespec="seconds"))
-        await asyncio.sleep(SLEEP_DURATION)
+        con.print("[red]Press q to exit[/] | [green]Press r to refresh[/]")
+
+        while now < next_dt:
+            await asyncio.sleep(1 / 60)
+            now = datetime.now()
+            if msvcrt.kbhit():
+                c = msvcrt.getch()
+                if c == b"q":
+                    return
+
+                if c == b"r":
+                    break
 
 
 loop = asyncio.new_event_loop()

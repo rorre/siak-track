@@ -21,9 +21,8 @@ BASE_HEADERS = {
 
 
 class SIAKError(BaseException):
-    def __init__(self, message: str, response: httpx.Response):
+    def __init__(self, message: str):
         self.message = message
-        self.response = response
 
 
 class Unauthorized(SIAKError):
@@ -48,31 +47,17 @@ class SIAKSession:
         )
 
     def _check_response(self, response: httpx.Response):
-        if response.status_code == 200:
-            response_text = BeautifulSoup(response.text, "lxml").text.strip()
-            if (
-                "server SIAKNG sedang mengalami" in response_text
-                or "SIAKNG saat ini tidak dapat diakses" in response_text
-            ):
-                raise SIAKError("Siak is down.", response)
-        elif response.status_code == 302:
+        if response.status_code == 302:
             target = (
                 response.headers.get("Location")
                 or response.headers.get("location")
                 or ""
             )
             if "Authentication" in target:
-                raise Unauthorized("Unauthorized.", response)
+                raise Unauthorized("Unauthorized.")
         else:
             return False
         return True
-
-    async def __aenter__(self):
-        self._client.__aenter__()
-        return self
-
-    async def __aexit__(self):
-        self._client.__aexit__()
 
     async def login(self):
         form = {
@@ -102,7 +87,7 @@ class SIAKSession:
             )
             try:
                 if not self._check_response(response):
-                    raise SIAKError("Unexpected response.", response)
+                    raise SIAKError("Unexpected response.")
                 break
             except Unauthorized:
                 await self.login()
